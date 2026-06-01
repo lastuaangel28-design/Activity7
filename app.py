@@ -36,10 +36,10 @@ if uploaded_file is not None:
     # Interpret Result
     # Based on folder names: 0 = dandelion, 1 = sunflower (Alphabetical)
     if confidence > 0.5:
-        label = "Sunflower" 🌻
+        label = "Sunflower🌻" 
         score = confidence * 100
     else:
-        label = "Dandelion" 🌼
+        label = "Dandelion🌼" 
         score = (1 - confidence) * 100
         
     st.success(f"Prediction: **{label}**")
