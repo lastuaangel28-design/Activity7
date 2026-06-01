@@ -1,59 +1,46 @@
 import streamlit as st
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
-import tensorflow as tf
 
+# 1. Page Configuration
 st.set_page_config(page_title="Flower Classifier", layout="centered")
 
-@st.cache_resource
-def load_model():
-    try:
-        # Load the model trained with the new script
-        model = tf.keras.models.load_model("flower_model.keras")
-        return model
-    except:
-        return None
+# 2. Load the Model
+with st.spinner('Loading model...'):
+    model = load_model('best_model.h5')
 
-model = load_model()
+# 3. UI Header
+st.title("🌼 vs 🌻 Flower Classifier")
+st.write("Upload a flower image to classify it as a Dandelion or Sunflower using EfficientNetB0.")
 
-st.title("Sunflower vs. Dandelion Classifier")
-st.write("Upload an image to classify.")
-
+# 4. File Uploader
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption='Uploaded Image', use_column_width=True)
+    # Display image
+    img = Image.open(uploaded_file)
+    st.image(img, caption="Uploaded Image", use_column_width=True)
     
-    if st.button("Predict"):
-        if model:
-            # 1. Resize
-            image = image.resize((224, 224))
-            img_array = np.array(image)
-            
-            # 2. Preprocessing MUST match training
-            # Training used: layers.Rescaling(1./127.5, offset=-1)
-            # This converts 0-255 -> -1 to 1
-            img_array = img_array.astype("float32")
-            img_array = (img_array / 127.5) - 1.0
-            
-            # 3. Expand dimensions for batch size
-            img_array = np.expand_dims(img_array, axis=0) 
-            
-            # 4. Predict
-            prediction = model.predict(img_array)
-            score = float(tf.nn.sigmoid(prediction[0][0]))
-            
-            # 5. Interpret Result
-            # 0 = Dandelion, 1 = Sunflower (Alphabetical order usually)
-            if score < 0.5:
-                label = "Dandelion"
-                confidence = 1.0 - score
-            else:
-                label = "Sunflower"
-                confidence = score
-                
-            st.success(f"Predicted Class: {label}")
-            st.write(f"Confidence: {confidence * 100:.2f}%")
-        else:
-            st.error("Model not found. Please run train.py first.")
+    # Preprocess
+    img = img.resize((224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.0 # Normalize to 0-1 (matching train.py)
+    
+    # Predict
+    prediction = model.predict(img_array)
+    confidence = prediction[0][0]
+    
+    # Interpret Result
+    # Based on folder names: 0 = dandelion, 1 = sunflower (Alphabetical)
+    if confidence > 0.5:
+        label = "Sunflower" 🌻
+        score = confidence * 100
+    else:
+        label = "Dandelion" 🌼
+        score = (1 - confidence) * 100
+        
+    st.success(f"Prediction: **{label}**")
+    st.write(f"Confidence: {score:.2f}%")
